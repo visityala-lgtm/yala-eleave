@@ -107,6 +107,18 @@ function getLeavePdfUrl(token, leaveId, finalVersion) {
   return {url:DriveApp.getFileById(fileId).getUrl(),status:item.status};
 }
 
+/** Return PDF bytes only after checking the caller's session and ownership/role. */
+function getLeavePdfData(token, leaveId, finalVersion) {
+  const user = requireSession_(token);
+  const item = readObjects_(leaveSheet_()).find(r => String(r.id) === String(leaveId));
+  if (!item) throw new Error('ไม่พบใบลา');
+  if (item.user_id !== user.id && user.role === 'staff') throw new Error('ไม่มีสิทธิ์เข้าถึงเอกสารนี้');
+  const fileId = finalVersion ? item.final_pdf_file_id : item.preview_pdf_file_id;
+  if (!fileId) throw new Error(finalVersion ? 'ยังไม่มี PDF ฉบับสมบูรณ์' : 'ยังไม่มี PDF ตัวอย่าง');
+  const file = DriveApp.getFileById(fileId);
+  return {filename:file.getName(),mimeType:'application/pdf',base64:Utilities.base64Encode(file.getBlob().getBytes())};
+}
+
 function requireSession_(token) {
   const user = getSessionUser(token);
   if (!user) throw new Error('SESSION_EXPIRED');

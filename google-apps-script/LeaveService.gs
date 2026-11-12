@@ -13,7 +13,7 @@ const LEAVE_STAGES_ = [
 ];
 const LEAVE_ROLE_STAGE_ = {security:0, head:1, director:2, commander:3, hr:4};
 const LEAVE_TYPES_ = ['ลาป่วย','ลาคลอดบุตร','ลากิจส่วนตัว','ลาพักผ่อน'];
-const LEAVE_EXTRA_HEADERS_ = ['preview_pdf_file_id','final_pdf_file_id'];
+const LEAVE_EXTRA_HEADERS_ = ['employee_position','personnel_type','last_leave_type','last_leave_from','last_leave_to','last_leave_days','leave_year_stats','leave_balance_previous','leave_entitlement','duty_note','preview_pdf_file_id','final_pdf_file_id'];
 
 function submitLeave(token, input) {
   const user = requireSession_(token);
@@ -35,7 +35,11 @@ function submitLeave(token, input) {
     const id = Utilities.getUuid();
     const code = 'YL-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd') + '-' + id.slice(0,6).toUpperCase();
     const item = {
-      id:id, code:code, user_id:user.id, employee_name:user.name,
+      id:id, code:code, user_id:user.id, employee_name:user.name, employee_position:user.position || '', personnel_type:String(input.personnel_type || ''),
+      last_leave_type:String(input.last_leave_type || ''), last_leave_from:String(input.last_leave_from || ''),
+      last_leave_to:String(input.last_leave_to || ''), last_leave_days:String(input.last_leave_days || ''),
+      leave_year_stats:String(input.leave_year_stats || ''), leave_balance_previous:String(input.leave_balance_previous || ''),
+      leave_entitlement:String(input.leave_entitlement || ''), duty_note:String(input.duty_note || ''),
       department:user.department || '', shift_group:String(input.shift_group || ''),
       leave_type:type, date_from:from, date_to:to, days:days, reason:reason,
       contact:String(input.contact || '').trim(), address:String(input.address || '').trim(),
@@ -133,7 +137,7 @@ function setLeaveFields_(id,fields) {
   Object.keys(fields).forEach(k=>{const c=headers.indexOf(k);if(c>=0)sh.getRange(row+1,c+1).setValue(fields[k]);});
 }
 function publicLeave_(r) {
-  const o={}; ['id','code','employee_name','department','leave_type','date_from','date_to','days','reason','contact','address','stage','status','created_at','preview_pdf_file_id','final_pdf_file_id'].forEach(k=>o[k]=r[k] || '');
+  const o={}; ['id','code','employee_name','employee_position','department','leave_type','date_from','date_to','days','reason','contact','address','stage','status','created_at','preview_pdf_file_id','final_pdf_file_id'].forEach(k=>o[k]=r[k] || '');
   return o;
 }
 function logLeaveEvent_(user,action,target,details) {
@@ -157,7 +161,7 @@ function createLeavePdf_(item,isFinal) {
   body.appendParagraph('เรื่อง '+(item.leave_type==='ลาพักผ่อน'?'ขออนุญาตลาพักผ่อน':'ขอ'+item.leave_type));
   body.appendParagraph('เรียน ผู้บัญชาการเรือนจำกลางยะลา');
   const rows=[
-    ['ชื่อ-นามสกุล',item.employee_name || '','ตำแหน่ง',item.position || ''],
+    ['ชื่อ-นามสกุล',item.employee_name || '','ตำแหน่ง',item.employee_position || ''],
     ['สังกัด',item.department || '','ประเภทการลา',item.leave_type],
     ['วันที่เริ่มลา',thaiDate_(item.date_from),'วันที่สิ้นสุด',thaiDate_(item.date_to)],
     ['จำนวนวันลา',String(item.days)+' วัน','สถานะ',isFinal?'อนุมัติครบทุกลำดับ':'ตัวอย่าง — อยู่ระหว่างดำเนินการ'],
@@ -166,7 +170,9 @@ function createLeavePdf_(item,isFinal) {
   ];
   const table=body.appendTable(rows);
   table.setBorderWidth(0.5);
-  body.appendParagraph('สถิติการลาในปีงบประมาณนี้').setBold(true);
+  body.appendParagraph('ประวัติการลาครั้งสุดท้าย: '+[item.last_leave_type,item.last_leave_from,item.last_leave_to,item.last_leave_days].filter(Boolean).join(' / '));
+  body.appendParagraph('สิทธิวันลาพักผ่อนคงเหลือจากปีก่อน: '+(item.leave_balance_previous || '................')+'   สิทธิปีปัจจุบัน: '+(item.leave_entitlement || '................'));
+  body.appendParagraph('หมายเหตุเวรยาม: '+(item.duty_note || '................................'));\n  body.appendParagraph('สถิติการลาในปีงบประมาณนี้: '+(item.leave_year_stats || 'รอข้อมูลจากระบบทะเบียนวันลา')).setBold(true);
   body.appendTable([['ประเภทการลา','จำนวนวัน'],['ลาป่วย','................'],['ลากิจส่วนตัว','................'],['ลาพักผ่อน','................'],['ลาคลอดบุตร','................']]).setBorderWidth(0.5);
   body.appendParagraph('ความเห็นฝ่ายรักษาการณ์ / หัวหน้าฝ่าย / ผู้อำนวยการ');
   body.appendParagraph('................................................................................................................');

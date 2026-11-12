@@ -59,18 +59,9 @@ function setupDatabase() {
   return {ok:true, spreadsheetName:ss.getName(), sheets:Object.keys(DB_SHEETS)};
 }
 
-/** Health check only; does not expose sheet contents or personal data. */
+/** Serve the authenticated Apps Script web application. */
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({
-    ok:true, service:'YALA E-LEAVE API', status:'initialized',
-    timestamp:new Date().toISOString()
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
-/** Reject writes until the authenticated API layer is installed. */
-function doPost() {
-  return ContentService.createTextOutput(JSON.stringify({
-    ok:false, error:'API_NOT_CONFIGURED',
-    message:'ยังไม่ได้เปิดใช้งาน API สำหรับข้อมูลส่วนบุคคล'
-  })).setMimeType(ContentService.MimeType.JSON);
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('YALA E-LEAVE — ระบบลาออนไลน์ เรือนจำกลางยะลา')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

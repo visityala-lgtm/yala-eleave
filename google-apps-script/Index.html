@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YALA E-LEAVE</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f3f6f3;color:#18352d;margin:0}
+    header{background:#145b48;color:white;padding:18px 24px;font-size:20px;font-weight:bold}
+    main{max-width:960px;margin:24px auto;padding:0 16px}
+    .card{background:white;border:1px solid #dce7df;border-radius:14px;padding:20px;margin-bottom:16px}
+    h2{margin-top:0;font-size:20px}label{display:block;font-size:13px;margin:12px 0 5px}
+    input,select,textarea{width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd8ce;border-radius:8px;font:inherit}
+    textarea{min-height:80px}button{border:0;border-radius:8px;background:#176b55;color:white;padding:11px 16px;font:inherit;cursor:pointer;margin:12px 8px 0 0}
+    button.secondary{background:#eaf2ec;color:#174c3e}button.danger{background:#a63f3b}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hidden{display:none!important}
+    .muted{color:#64766c;font-size:13px}.notice{background:#fff7e5;padding:12px;border-radius:8px;color:#785b1c;font-size:13px;margin:12px 0}
+    .success{color:#176b55}.error{color:#a63f3b}.item{border-top:1px solid #e6ece7;padding:13px 0}
+    .pill{display:inline-block;background:#edf4ef;padding:4px 8px;border-radius:20px;font-size:12px}
+    @media(max-width:650px){.grid{grid-template-columns:1fr}header{padding:15px;font-size:17px}}
+  </style>
+</head>
+<body>
+<header>⚖ YALA E-LEAVE · ระบบลาออนไลน์ เรือนจำกลางยะลา</header>
+<main>
+  <section id="loginCard" class="card">
+    <h2>เข้าสู่ระบบ</h2>
+    <label>ชื่อผู้ใช้</label><input id="username" autocomplete="username">
+    <label>รหัสผ่าน</label><input id="password" type="password" autocomplete="current-password">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <p id="loginMessage" class="muted"></p>
+  </section>
+
+  <section id="passwordCard" class="card hidden">
+    <h2>เปลี่ยนรหัสผ่านเริ่มต้น</h2>
+    <p class="notice">บัญชีนี้ใช้รหัสผ่านชั่วคราว กรุณาตั้งรหัสผ่านใหม่อย่างน้อย 10 ตัวอักษรก่อนใช้งาน</p>
+    <label>รหัสผ่านเดิม</label><input id="oldPassword" type="password">
+    <label>รหัสผ่านใหม่</label><input id="newPassword" type="password">
+    <button onclick="changePassword()">เปลี่ยนรหัสผ่าน</button>
+    <p id="passwordMessage" class="muted"></p>
+  </section>
+
+  <section id="appCard" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+        <div><h2 id="welcome">ระบบใบลา</h2><div id="role" class="muted"></div></div>
+        <button class="secondary" onclick="logout()">ออกจากระบบ</button>
+      </div>
+      <div class="notice">ระบบทดลองเชื่อม Google Sheets ผ่าน Apps Script โดยตรง โปรดใช้บัญชีทดสอบจนกว่าจะตรวจสอบแบบฟอร์มราชการและสิทธิ์ครบถ้วน</div>
+    </div>
+
+    <section id="submitCard" class="card">
+      <h2>ยื่นใบลา</h2>
+      <form id="leaveForm" onsubmit="submitForm(event)">
+        <div class="grid">
+          <div><label>ประเภทการลา</label><select id="leaveType" required><option>ลาป่วย</option><option>ลาคลอดบุตร</option><option>ลากิจส่วนตัว</option><option>ลาพักผ่อน</option></select></div>
+          <div><label>จำนวนวันลา</label><input id="days" type="number" min="0.5" step="0.5" required></div>
+          <div><label>วันที่เริ่มลา</label><input id="dateFrom" type="date" required></div>
+          <div><label>วันที่สิ้นสุด</label><input id="dateTo" type="date" required></div>
+        </div>
+        <label>เหตุผลการลา</label><textarea id="reason" required></textarea>
+        <div class="grid">
+          <div><label>โทรศัพท์ระหว่างลา</label><input id="contact"></div>
+          <div><label>กลุ่มเวร (ถ้ามี)</label><input id="shiftGroup"></div>
+        </div>
+        <label>ที่อยู่ระหว่างลา</label><textarea id="address"></textarea>
+        <button type="submit">ส่งใบลาและสร้าง PDF ตัวอย่าง</button>
+        <p id="submitMessage" class="muted"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>ใบลาของฉัน</h2><button class="secondary" onclick="loadMine()">รีเฟรชรายการ</button>
+      <div id="mineList" class="muted">กำลังโหลด...</div>
+    </section>
+
+    <section id="approvalCard" class="card hidden">
+      <h2>รายการรอพิจารณา</h2><button class="secondary" onclick="loadApprovals()">รีเฟรชรายการ</button>
+      <div id="approvalList" class="muted">กำลังโหลด...</div>
+    </section>
+  </section>
+</main>
+<script>
+let token='', currentUser=null;
+function callServer(name,...args){
+  return new Promise((resolve,reject)=>{
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(e=>reject(new Error(e.message||String(e))))[name](...args);
+  });
+}
+function showMessage(id,msg,isError=false){const el=document.getElementById(id);el.textContent=msg;el.className=isError?'error':'success';}
+async function login(){
+  try{
+    const r=await callServer('login',document.getElementById('username').value,document.getElementById('password').value);
+    if(!r.ok){showMessage('loginMessage',r.error,true);return;}
+    token=r.token;currentUser=r.user;
+    document.getElementById('loginCard').classList.add('hidden');
+    if(r.mustChangePassword){document.getElementById('passwordCard').classList.remove('hidden');return;}
+    enterApp();
+  }catch(e){showMessage('loginMessage',e.message,true);}
+}
+async function changePassword(){
+  try{
+    const r=await callServer('changeOwnPassword',token,document.getElementById('oldPassword').value,document.getElementById('newPassword').value);
+    if(!r.ok){showMessage('passwordMessage',r.error,true);return;}
+    document.getElementById('passwordCard').classList.add('hidden');enterApp();
+  }catch(e){showMessage('passwordMessage',e.message,true);}
+}
+function enterApp(){
+  document.getElementById('appCard').classList.remove('hidden');
+  document.getElementById('welcome').textContent='สวัสดี '+currentUser.name;
+  document.getElementById('role').textContent=currentUser.department+' · '+currentUser.role;
+  if(['security','head','director','commander','hr'].includes(currentUser.role)){
+    document.getElementById('approvalCard').classList.remove('hidden');loadApprovals();
+  }
+  loadMine();
+}
+async function submitForm(e){
+  e.preventDefault();
+  const input={
+    leave_type:document.getElementById('leaveType').value,
+    days:Number(document.getElementById('days').value),
+    date_from:document.getElementById('dateFrom').value,
+    date_to:document.getElementById('dateTo').value,
+    reason:document.getElementById('reason').value,
+    contact:document.getElementById('contact').value,
+    shift_group:document.getElementById('shiftGroup').value,
+    address:document.getElementById('address').value
+  };
+  try{
+    const r=await callServer('submitLeave',token,input);
+    if(!r.ok){showMessage('submitMessage',r.error,true);return;}
+    showMessage('submitMessage','ส่งใบลาแล้ว เลขที่ '+r.code);
+    document.getElementById('leaveForm').reset();
+    loadMine();
+    if(r.previewPdfUrl)window.open(r.previewPdfUrl,'_blank');
+  }catch(e){showMessage('submitMessage',e.message,true);}
+}
+async function loadMine(){
+  try{
+    const rows=await callServer('listMyLeaves',token);
+    document.getElementById('mineList').innerHTML=rows.length?rows.map(rowHtml).join(''):'ยังไม่มีใบลา';
+  }catch(e){document.getElementById('mineList').textContent=e.message;}
+}
+async function loadApprovals(){
+  try{
+    const rows=await callServer('listPendingApprovals',token);
+    document.getElementById('approvalList').innerHTML=rows.length?rows.map(r=>rowHtml(r,true)).join(''):'ไม่มีรายการรอพิจารณา';
+  }catch(e){document.getElementById('approvalList').textContent=e.message;}
+}
+function rowHtml(r,canAct=false){
+  const pdf=r.status==='approved'&&r.final_pdf_file_id?'ฉบับสมบูรณ์':'ตัวอย่าง';
+  return '<div class="item"><b>'+escapeHtml(r.code||'ใบลา')+'</b> · '+escapeHtml(r.leave_type||'')+
+    '<div class="muted">'+escapeHtml(r.date_from||'')+' ถึง '+escapeHtml(r.date_to||'')+
+    ' · '+escapeHtml(r.days||'')+' วัน · '+escapeHtml(r.status||'')+'</div>'+
+    (r.preview_pdf_file_id?'<button class="secondary" onclick="openPdf(\''+r.id+'\',false)">PDF ตัวอย่าง</button>':'')+
+    (r.final_pdf_file_id?'<button class="secondary" onclick="openPdf(\''+r.id+'\',true)">PDF ฉบับสมบูรณ์</button>':'')+
+    (canAct?'<button onclick="review(\''+r.id+'\',\'approve\')">อนุมัติ</button><button class="danger" onclick="review(\''+r.id+'\',\'reject\')">ไม่อนุมัติ</button>':'')+
+    '</div>';
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function openPdf(id,finalVersion){
+  try{
+    const r=await callServer('getLeavePdfData',token,id,finalVersion);
+    const bytes=Uint8Array.from(atob(r.base64),c=>c.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    const a=document.createElement('a');a.href=url;a.download=r.filename;a.click();URL.revokeObjectURL(url);
+  }catch(e){alert(e.message);}
+}
+async function review(id,decision){
+  const note=prompt('หมายเหตุ (ถ้ามี)')||'';
+  try{
+    const r=await callServer('reviewLeave',token,id,decision,note);
+    if(!r.ok){alert(r.error);return;}
+    loadApprovals();loadMine();alert('บันทึกผลการพิจารณาแล้ว');
+  }catch(e){alert(e.message);}
+}
+async function logout(){
+  try{await callServer('logout',token);}catch(e){}
+  token='';currentUser=null;location.reload();
+}
+</script>
+</body>
+</html>

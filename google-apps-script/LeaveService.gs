@@ -123,19 +123,36 @@ function submitLeave(token, input) {
     appendObject_(sheet, item);
     logLeaveEvent_(user, 'leave_submit', id, 'ยื่นใบลา ' + code);
 
-    const preview = createLeavePdf_(item, false);
-    setLeaveField_(id, 'preview_pdf_file_id', preview.id);
-
     return {
       ok: true,
       id: id,
       code: code,
-      previewPdfUrl: preview.url,
-      status: 'pending'
+      status: 'pending',
+      pdfStatus: 'queued'
     };
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * Generate the preview PDF separately from submission.
+ * This keeps the initial save request short and prevents document conversion
+ * from delaying the leave-number confirmation.
+ */
+function generatePreviewPdf(token, leaveId) {
+  const user = requireSession_(token);
+  const item = findLeaveById_(leaveId);
+  assertLeaveAccess_(user, item);
+  if (item.preview_pdf_file_id) {
+    return {ok:true, existing:true};
+  }
+  if (item.status !== 'pending') {
+    throw new Error('ใบลานี้ไม่อยู่ในสถานะรอดำเนินการ');
+  }
+  const preview = createLeavePdf_(item, false);
+  setLeaveField_(item.id, 'preview_pdf_file_id', preview.id);
+  return {ok:true, id:preview.id};
 }
 
 /** List only the signed-in user's leave requests. */

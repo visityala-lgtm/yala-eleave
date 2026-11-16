@@ -76,8 +76,8 @@
     </section>
 
     <section id="approvalCard" class="card hidden">
-      <h2>รายการรอพิจารณา</h2><button class="secondary" onclick="loadApprovals()">รีเฟรชรายการ</button>
-      <div id="approvalList" class="muted">กำลังโหลด...</div>
+      <h2>รายการรอพิจารณา</h2><button class="secondary" onclick="loadApprovals()">โหลด/รีเฟรชรายการ</button>
+      <div id="approvalList" class="muted">กดปุ่มเพื่อโหลดรายการเมื่อพร้อม</div>
     </section>
   </section>
 </main>
@@ -111,8 +111,9 @@ function enterApp(){
   document.getElementById('welcome').textContent='สวัสดี '+currentUser.name;
   document.getElementById('role').textContent=currentUser.department+' · '+currentUser.role;
   if(['security','head','director','commander','hr'].includes(currentUser.role)){
-    document.getElementById('approvalCard').classList.remove('hidden');loadApprovals();
+    document.getElementById('approvalCard').classList.remove('hidden');
   }
+  // Load only the personal list on entry. Approval queues are loaded on demand.
   loadMine();
 }
 async function submitForm(e){
@@ -127,14 +128,23 @@ async function submitForm(e){
     shift_group:document.getElementById('shiftGroup').value,
     address:document.getElementById('address').value
   };
+  const submitButton=document.querySelector('#leaveForm button[type="submit"]');
+  submitButton.disabled=true;submitButton.textContent='กำลังบันทึกใบลา...';
   try{
     const r=await callServer('submitLeave',token,input);
     if(!r.ok){showMessage('submitMessage',r.error,true);return;}
-    showMessage('submitMessage','ส่งใบลาแล้ว เลขที่ '+r.code);
+    showMessage('submitMessage','บันทึกใบลาแล้ว เลขที่ '+r.code+' · กำลังสร้าง PDF ตัวอย่างเบื้องหลัง');
     document.getElementById('leaveForm').reset();
-    loadMine();
-    if(r.previewPdfUrl)window.open(r.previewPdfUrl,'_blank');
+    await loadMine();
+    // PDF generation is a separate request so saving the leave is not blocked by Docs/Drive.
+    callServer('generatePreviewPdf',token,r.id).then(()=>{
+      showMessage('submitMessage','สร้างใบลาและ PDF ตัวอย่างเรียบร้อย เลขที่ '+r.code);
+      loadMine();
+    }).catch(err=>{
+      showMessage('submitMessage','บันทึกใบลาแล้ว แต่สร้าง PDF ไม่สำเร็จ: '+err.message,true);
+    });
   }catch(e){showMessage('submitMessage',e.message,true);}
+  finally{submitButton.disabled=false;submitButton.textContent='ส่งใบลา';}
 }
 async function loadMine(){
   try{
